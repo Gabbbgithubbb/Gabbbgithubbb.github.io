@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEAsurfer: Ang Paglalakbay sa Timog Silangang Asya</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ocean: #0B2545;
+  --ocean-mid: #134074;
+  --wave: #1B6CA8;
+  --sand: #F4A261;
+  --jungle: #2D6A4F;
+  --jungle-light: #52B788;
+  --insular: #1B4F72;
+  --insular-light: #3498DB;
+  --gold: #FFD700;
+  --silver: #C0C0C0;
+  --bronze: #CD7F32;
+  --correct: #52B788;
+  --wrong: #E63946;
+  --white: #F8F9FA;
+  --card-bg: rgba(255,255,255,0.08);
+  --card-border: rgba(255,255,255,0.15);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--ocean);
+  color: var(--white);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Animated wave background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(27,108,168,0.3) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(45,106,79,0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(244,162,97,0.1) 0%, transparent 40%);
+  animation: bgPulse 8s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes bgPulse {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* Wave animation */
+.waves {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 120px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+}
+.wave {
+  position: absolute;
+  bottom: 0;
+  width: 200%;
+  height: 100%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120'%3E%3Cpath fill='%231B6CA8' d='M0,60 C240,100 480,20 720,60 C960,100 1200,20 1440,60 L1440,120 L0,120 Z'/%3E%3C/svg%3E") repeat-x;
+  background-size: 50% 100%;
+  animation: waveMove 8s linear infinite;
+}
+.wave:nth-child(2) { animation-duration: 12s; animation-delay: -4s; opacity: 0.5; }
+@keyframes waveMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* Progress bar */
+#progress-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  z-index: 100;
+}
+#progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--sand), var(--jungle-light));
+  transition: width 0.5s ease;
+  width: 0%;
+}
+
+/* Level indicator */
+#level-indicator {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#level-indicator.visible { opacity: 1; }
+.level-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  border: 2px solid rgba(255,255,255,0.3);
+  transition: all 0.3s;
+}
+.level-dot.active { background: var(--sand); border-color: var(--sand); box-shadow: 0 0 8px var(--sand); }
+.level-dot.done { background: var(--jungle-light); border-color: var(--jungle-light); }
+
+/* Screen system */
+.screen {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px 80px;
+  animation: fadeIn 0.5s ease;
+}
+.screen.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 700px;
+  width: 100%;
+}
+
+/* Buttons */
+.btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  padding: 14px 36px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--sand), #E76F51);
+  color: var(--ocean);
+  box-shadow: 0 4px 20px rgba(244,162,97,0.4);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(244,162,97,0.5); }
+.btn-secondary {
+  background: rgba(255,255,255,0.1);
+  color: var(--white);
+  border: 2px solid rgba(255,255,255,0.3);
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+
+/* ======================== SCREEN 0: INTRO ======================== */
+#screen-intro {
+  text-align: center;
+}
+
+.globe-container {
+  width: 200px; height: 200px;
+  margin: 0 auto 32px;
+  position: relative;
+}
+.globe {
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255,255,255,0.3) 0%, transparent 50%),
+    linear-gradient(135deg, var(--wave) 0%, var(--ocean) 100%);
+  box-shadow:
+    0 0 60px rgba(27,108,168,0.6),
+    inset -20px -20px 40px rgba(0,0,0,0.4),
+    inset 10px 10px 30px rgba(255,255,255,0.1);
+  animation: globeSpin 20s linear infinite;
+  position: relative;
+  overflow: hidden;
+}
+.globe::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 200%; height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px, transparent 18px,
+    rgba(255,255,255,0.05) 18px, rgba(255,255,255,0.05) 20px
+  ),
+  repeating-linear-gradient(
+    90deg,
+    transparent 0px, transparent 28px,
+    rgba(255,255,255,0.05) 28px, rgba(255,255,255,0.05) 30px
+  );
+  animation: continentMove 20s linear infinite;
+}
+.globe::after {
+  content: '🌏';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 80px;
+  animation: globeFloat 3s ease-in-out infinite alternate;
+}
+@keyframes globeSpin { from { box-shadow: 0 0 60px rgba(27,108,168,0.6), inset -20px -20px 40px rgba(0,0,0,0.4); } to { box-shadow: 0 0 80px rgba(82,183,136,0.4), inset -20px -20px 40px rgba(0,0,0,0.4); } }
+@keyframes continentMove { from { transform: translateX(0); } to { transform: translateX(50%); } }
+@keyframes globeFloat { from { transform: translate(-50%,-50%) scale(1); } to { transform: translate(-50%,-50%) scale(1.05); } }
+
+.game-title {
+  font-family: 'Lora', serif;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 700;
+  color: var(--sand);
+  text-shadow: 0 0 40px rgba(244,162,97,0.4);
+  margin-bottom: 8px;
+  letter-spacing: -1px;
+}
+.game-subtitle {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 40px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.input-group { position: relative; margin-bottom: 24px; }
+.input-group input {
+  width: 100%;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 18px 24px;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  color: var(--white);
+  outline: none;
+  text-align: center;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.input-group input:focus {
+  border-color: var(--sand);
+  box-shadow: 0 0 0 4px rgba(244,162,97,0.2);
+}
+.input-group input::placeholder { color: rgba(255,255,255,0.3); font-weight: 400; }
+
+/* ======================== SCREEN 1: LEVEL 1 ======================== */
+.level-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.level-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--sand), #E76F51);
+  color: var(--ocean);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 50px;
+  margin-bottom: 12px;
+}
+.level-title {
+  font-family: 'Lora', serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.level-desc { color: rgba(255,255,255,0.6); font-size: 0.95rem; }
+
+/* Word bank */
+.word-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 16px;
+  border: 1px dashed rgba(255,255,255,0.2);
+  min-height: 60px;
+}
+.country-chip {
+  padding: 8px 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: grab;
+  transition: all 0.2s;
+  user-select: none;
+  white-space: nowrap;
+}
+.country-chip:hover { transform: scale(1.05); border-color: var(--sand); }
+.country-chip.dragging { opacity: 0.5; cursor: grabbing; }
+.country-chip.placed { display: none; }
+
+/* Map zones */
+.map-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.map-zone {
+  border-radius: 16px;
+  padding: 16px;
+  min-height: 200px;
+  border: 2px dashed rgba(255,255,255,0.3);
+  transition: all 0.3s;
+  position: relative;
+}
+.map-zone.mainland {
+  background: rgba(45,106,79,0.2);
+  border-color: rgba(82,183,136,0.4);
+}
+.map-zone.insular {
+  background: rgba(27,79,114,0.2);
+  border-color: rgba(52,152,219,0.4);
+}
+.map-zone.drag-over {
+  border-style: solid;
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(255,255,255,0.1);
+}
+.map-zone .zone-label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mainland .zone-label { color: var(--jungle-light); }
+.insular .zone-label { color: var(--insular-light); }
+.zone-countries { display: flex; flex-wrap: wrap; gap: 6px; }
+.zone-chip {
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  animation: popIn 0.3s ease;
+}
+@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+.mainland .zone-chip { background: rgba(82,183,136,0.3); border: 1px solid var(--jungle-light); }
+.insular .zone-chip { background: rgba(52,152,219,0.3); border: 1px solid var(--insular-light); }
+
+/* Shake animation */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(10px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+/* Score display */
+.score-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.score-val { color: var(--sand); font-size: 1.2rem; }
+
+/* ======================== SCREEN 2: LEVEL 2 ======================== */
+.flag-display {
+  width: 200px; height: 130px;
+  margin: 0 auto 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  position: relative;
+  border: 3px solid rgba(255,255,255,0.3);
+}
+
+.timer-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--jungle-light), var(--sand));
+  border-radius: 4px;
+  transition: width 0.1s linear;
+}
+.timer-fill.urgent { background: linear-gradient(90deg, var(--wrong), #FF6B6B); }
+
+.choices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.choice-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 14px 12px;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  color: var(--white);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.choice-btn:hover { background: rgba(255,255,255,0.15); border-color: var(--sand); transform: translateY(-2px); }
+.choice-btn.correct { background: rgba(82,183,136,0.3); border-color: var(--correct); }
+.choice-btn.wrong { background: rgba(230,57,70,0.3); border-color: var(--wrong); }
+.choice-btn:disabled { cursor: not-allowed; }
+
+.round-indicator {
+  text-align: center;
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 16px;
+}
+
+/* ======================== SCREEN 3: LEVEL 3 ======================== */
+.merchant-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 20px;
+  max-width: 800px;
+  width: 100%;
+}
+
+.cargo-card {
+  background: rgba(0,0,0,0.3);
+  border: 2px solid var(--sand);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.cargo-icon { font-size: 4rem; margin-bottom: 12px; display: block; animation: cargoFloat 2s ease-in-out infinite alternate; }
+@keyframes cargoFloat { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+.cargo-title {
+  font-family: 'Lora', serif;
+  font-size: 1.1rem;
+  color: var(--sand);
+  margin-bottom: 8px;
+}
+.cargo-mission { font-size: 0.9rem; color: rgba(255,255,255,0.7); line-height: 1.5; }
+.mission-progress {
+  margin-top: 16px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.mission-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+}
+.mission-dot.done { background: var(--jungle-light); }
+.mission-dot.current { background: var(--sand); box-shadow: 0 0 6px var(--sand); }
+
+/* SEA Clickable Map */
+.sea-map-container { position: relative; }
+.sea-map {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(11,37,69,0.8);
+  border: 2px solid rgba(255,255,255,0.15);
+}
+.sea-svg { width: 100%; height: auto; }
+
+/* Country regions on SVG map */
+.country-region {
+  cursor: pointer;
+  transition: opacity 0.2s, filter 0.2s;
+  stroke: rgba(255,255,255,0.4);
+  stroke-width: 1.5;
+}
+.country-region:hover { filter: brightness(1.4); stroke: white; stroke-width: 2; }
+.country-region.correct-flash { animation: correctFlash 0.6s ease; }
+.country-region.wrong-flash { animation: wrongFlash 0.6s ease; }
+@keyframes correctFlash { 0%,100% { filter: brightness(1); } 50% { filter: brightness(2) saturate(2); } }
+@keyframes wrongFlash { 0%,100% { filter: brightness(1); } 50% { filter: brightness(0.5) saturate(0); } }
+
+/* Popup feedback */
+.feedback-popup {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%) scale(0.8);
+  background: var(--ocean-mid);
+  border: 2px solid var(--sand);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+.feedback-popup.show {
+  opacity: 1;
+  transform: translate(-50%,-50%) scale(1);
+  pointer-events: all;
+}
+.feedback-emoji { font-size: 3rem; margin-bottom: 12px; display: block; }
+.feedback-title { font-family: 'Lora', serif; font-size: 1.4rem; color: var(--sand); margin-bottom: 8px; }
+.feedback-text { color: rgba(255,255,255,0.8); line-height: 1.6; font-size: 0.95rem; margin-bottom: 20px; }
+
+/* Overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 199;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.overlay.show { opacity: 1; pointer-events: all; }
+
+/* ======================== SCREEN 4: RESULTS ======================== */
+#screen-results { text-align: center; }
+
+.medal-display {
+  font-size: 8rem;
+  margin-bottom: 16px;
+  animation: medalBounce 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  display: block;
+}
+@keyframes medalBounce {
+  0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.result-name {
+  font-family: 'Lora', serif;
+  font-size: 1.8rem;
+  color: var(--sand);
+  margin-bottom: 8px;
+}
+.result-score-big {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 16px 0;
+}
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+.stat-card {
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  padding: 16px;
+}
+.stat-val { font-size: 1.8rem; font-weight: 800; color: var(--sand); }
+.stat-label { font-size: 0.75rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+.feedback-message {
+  background: rgba(0,0,0,0.2);
+  border-left: 4px solid var(--jungle-light);
+  border-radius: 0 12px 12px 0;
+  padding: 16px 20px;
+  text-align: left;
+  margin: 20px 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.85);
+}
+
+.result-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* Level score breakdown */
+.level-scores {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 16px 0;
+}
+.level-score-item {
+  flex: 1;
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 0.8rem;
+}
+.level-score-item .ls-val { font-size: 1.2rem; font-weight: 800; }
+.level-score-item .ls-name { color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+/* Transition screen */
+#transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--ocean);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+#transition-overlay.show { opacity: 1; pointer-events: all; }
+.compass {
+  font-size: 5rem;
+  animation: compassSpin 1s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes compassSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.transition-text { font-family: 'Lora', serif; font-size: 1.4rem; color: var(--sand); }
+
+/* Utility */
+.text-center { text-align: center; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"><div id="progress-fill"></div></div>
+<div id="level-indicator">
+  <div class="level-dot" id="dot-0"></div>
+  <div class="level-dot" id="dot-1"></div>
+  <div class="level-dot" id="dot-2"></div>
+  <div class="level-dot" id="dot-3"></div>
+</div>
+
+<div class="waves">
+  <div class="wave"></div>
+  <div class="wave"></div>
+</div>
+
+<!-- Transition Overlay -->
+<div id="transition-overlay">
+  <div class="compass">🧭</div>
+  <div class="transition-text" id="transition-text">Naglo-load...</div>
+</div>
+
+<!-- Feedback Popup -->
+<div class="overlay" id="overlay"></div>
+<div class="feedback-popup" id="feedback-popup">
+  <span class="feedback-emoji" id="popup-emoji">✅</span>
+  <div class="feedback-title" id="popup-title">Tama!</div>
+  <div class="feedback-text" id="popup-text"></div>
+  <button class="btn btn-primary" id="popup-next-btn" onclick="closeFeedback()">Susunod ➜</button>
+</div>
+
+<!-- ======================== SCREEN 0: INTRO ======================== -->
+<div class="screen active" id="screen-intro">
+  <div class="globe-container"><div class="globe"></div></div>
+  <h1 class="game-title">SEAsurfer</h1>
+  <p class="game-subtitle">Ang Paglalakbay sa Timog Silangang Asya</p>
+  <div class="card" style="max-width: 440px; text-align:center;">
+    <p style="color:rgba(255,255,255,0.7); margin-bottom:20px; font-size:1rem;">Mabuhay, Explorer! I-type ang iyong pangalan para simulan ang misyon.</p>
+    <div class="input-group">
+      <input type="text" id="player-name-input" placeholder="Ang iyong pangalan..." maxlength="24" />
+    </div>
+    <button class="btn btn-primary" onclick="startGame()" style="width:100%;">🚀 SIMULAN ANG MISYON</button>
+    <p style="font-size:0.8rem; color:rgba(255,255,255,0.3); margin-top:16px;">Para sa Grade 7 · Araling Panlipunan</p>
+  </div>
+</div>
+
+<!-- ======================== SCREEN 1: LEVEL 1 ======================== -->
+<div class="screen" id="screen-level1" style="padding-top: 60px;">
+  <div class="level-header">
+    <div class="level-badge">Level 1 · Territory Tag</div>
+    <h2 class="level-title">🗺️ I-lagay ang mga Bansa sa Tamang Lugar!</h2>
+    <p class="level-desc">I-drag ang bansa papunta sa tamang kategorya — Mainland (🟢) o Insular (🔵).</p>
+  </div>
+
+  <div style="max-width:750px; width:100%;">
+    <div class="score-bar">
+      <span>Naka-lagay: <span class="score-val" id="l1-placed">0</span>/11</span>
+      <span>Puntos: <span class="score-val" id="l1-score">0</span></span>
+    </div>
+
+    <div class="word-bank" id="word-bank"></div>
+
+    <div class="map-container">
+      <div class="map-zone mainland" id="zone-mainland"
+        ondragover="allowDrop(event)" ondrop="dropCountry(event,'mainland')" ondragenter="this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')">
+        <div class="zone-label">🟢 Mainland SEA<br><span style="font-size:0.7rem;opacity:0.7">(Katibayan ng Asya)</span></div>
+        <div class="zone-countries" id="placed-mainland"></div>
+      </div>
+      <div class="map-zone insular" id="zone-insular"
+        ondragover="allowDrop(event)" ondrop="dropCountry(event,'insular')" ondragenter="this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')">
+        <div class="zone-label">🔵 Insular SEA<br><span style="font-size:0.7rem;opacity:0.7">(Kapuluan)</span></div>
+        <div class="zone-countries" id="placed-insular"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SCREEN 2: LEVEL 2 ======================== -->
+<div class="screen" id="screen-level2">
+  <div class="level-header">
+    <div class="level-badge">Level 2 · Flag Runner</div>
+    <h2 class="level-title">🚩 Anong Bansa Ito?</h2>
+    <p class="level-desc">Kilalanin ang bansa at kabisera nito batay sa bandila.</p>
+  </div>
+
+  <div class="card" style="max-width:560px;">
+    <div class="round-indicator">Tanong <span id="l2-round">1</span> / 7</div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill"></div></div>
+    <div class="flag-display" id="flag-display"></div>
+    <p style="text-align:center; font-size:1.1rem; font-weight:700; margin-bottom:8px;">Anong bansa ito at ano ang kabisera?</p>
+    <div class="choices-grid" id="choices-grid"></div>
+    <div style="text-align:center; margin-top:16px;">
+      <span style="font-size:0.85rem; color:rgba(255,255,255,0.4);">Puntos: </span>
+      <span style="font-size:1.1rem; font-weight:800; color:var(--sand);" id="l2-score">0</span>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SCREEN 3: LEVEL 3 ======================== -->
+<div class="screen" id="screen-level3">
+  <div class="level-header">
+    <div class="level-badge">Level 3 · The Merchant's Quest</div>
+    <h2 class="level-title">⚓ Pumili ng Bansa sa Mapa!</h2>
+    <p class="level-desc">Basahin ang misyon at i-click ang tamang bansa.</p>
+  </div>
+
+  <div class="merchant-layout">
+    <!-- Cargo card -->
+    <div class="cargo-card">
+      <span class="cargo-icon" id="cargo-icon">🌾</span>
+      <div class="cargo-title" id="cargo-title">CARGO MISSION</div>
+      <div class="cargo-mission" id="cargo-mission">...</div>
+      <div style="margin-top:12px; font-size:0.8rem; color:rgba(255,255,255,0.4);">Misyon</div>
+      <div class="mission-progress" id="mission-progress"></div>
+      <div style="margin-top:16px; font-size:0.85rem; color:rgba(255,255,255,0.4);">Puntos: <span style="color:var(--sand); font-weight:800;" id="l3-score">0</span></div>
+    </div>
+
+    <!-- Clickable SVG map -->
+    <div class="sea-map-container">
+      <div class="sea-map">
+        <svg class="sea-svg" viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" id="sea-map-svg">
+          <!-- Background ocean -->
+          <rect width="400" height="320" fill="#0B2545"/>
+          
+          <!-- MAINLAND COUNTRIES -->
+          <!-- Myanmar -->
+          <path id="reg-Myanmar" class="country-region" fill="#2D6A4F"
+            d="M120,20 L145,18 L160,30 L165,55 L155,80 L150,100 L140,115 L125,110 L115,90 L110,65 L115,40 Z"
+            onclick="clickCountry('Myanmar')"/>
+          <text x="138" y="75" fill="white" font-size="8" font-family="Nunito" font-weight="700" text-anchor="middle">Myanmar</text>
+
+          <!-- Thailand -->
+          <path id="reg-Thailand" class="country-region" fill="#3A7D44"
+            d="M140,115 L155,105 L165,115 L168,140 L165,165 L155,180 L145,185 L140,175 L135,155 L132,135 Z"
+            onclick="clickCountry('Thailand')"/>
+          <text x="150" y="148" fill="white" font-size="8" font-family="Nunito" font-weight="700" text-anchor="middle">Thailand</text>
+
+          <!-- Laos -->
+          <path id="reg-Laos" class="country-region" fill="#4A8B5A"
+            d="M165,55 L190,50 L200,65 L195,90 L185,110 L170,115 L165,100 L165,75 Z"
+            onclick="clickCountry('Laos')"/>
+          <text x="183" y="85" fill="white" font-size="7" font-family="Nunito" font-weight="700" text-anchor="middle">Laos</text>
+
+          <!-- Vietnam -->
+          <path id="reg-Vietnam" class="country-region" fill="#52B788"
+            d="M190,50 L210,45 L220,60 L215,90 L205,120 L195,145 L185,155 L180,140 L185,115 L195,90 L200,65 Z"
+            onclick="clickCountry('Vietnam')"/>
+          <text x="204" y="105" fill="white" font-size="7" font-family="Nunito" font-weight="700" text-anchor="middle">Vietnam</text>
+
+          <!-- Cambodia -->
+          <path id="reg-Cambodia" class="country-region" fill="#348A5E"
+            d="M165,165 L185,155 L200,162 L198,182 L182,192 L165,188 L160,178 Z"
+            onclick="clickCountry('Cambodia')"/>
+          <text x="182" y="178" fill="white" font-size="7" font-family="Nunito" font-weight="700" text-anchor="middle">Cambodia</text>
+
+          <!-- Malaysia (Peninsular) -->
+          <path id="reg-Malaysia" class="country-region" fill="#2E856E"
+            d="M145,185 L165,185 L182,195 L180,215 L165,225 L150,215 L145,200 Z"
+            onclick="clickCountry('Malaysia')"/>
+          <text x="163" y="210" fill="white" font-size="7" font-family="Nunito" font-weight="700" text-anchor="middle">Malaysia</text>
+
+          <!-- INSULAR COUNTRIES -->
+          <!-- Philippines -->
+          <ellipse id="reg-Philippines" class="country-region" fill="#1B4F72" cx="300" cy="110" rx="30" ry="50"
+            onclick="clickCountry('Philippines')"/>
+          <ellipse class="country-region" fill="#1B4F72" cx="310" cy="155" rx="14" ry="18"
+            onclick="clickCountry('Philippines')" style="pointer-events:none;"/>
+          <text x="300" y="108" fill="white" font-size="8" font-family="Nunito" font-weight="700" text-anchor="middle">Pilipinas</text>
+
+          <!-- Indonesia (simplified) -->
+          <path id="reg-Indonesia" class="country-region" fill="#154360"
+            d="M170,245 L240,238 L280,242 L320,238 L355,244 L370,255 L360,268 L290,272 L220,268 L175,265 Z"
+            onclick="clickCountry('Indonesia')"/>
+          <text x="270" y="258" fill="white" font-size="8" font-family="Nunito" font-weight="700" text-anchor="middle">Indonesia</text>
+
+          <!-- Singapore -->
+          <circle id="reg-Singapore" class="country-region" fill="#1A5276" cx="183" cy="232" r="8"
+            onclick="clickCountry('Singapore')"/>
+          <text x="183" y="248" fill="white" font-size="6" font-family="Nunito" font-weight="700" text-anchor="middle">Sing.</text>
+
+          <!-- Brunei -->
+          <circle id="reg-Brunei" class="country-region" fill="#154360" cx="245" cy="225" r="10"
+            onclick="clickCountry('Brunei')"/>
+          <text x="245" y="241" fill="white" font-size="6" font-family="Nunito" font-weight="700" text-anchor="middle">Brunei</text>
+
+          <!-- Timor-Leste -->
+          <ellipse id="reg-Timor-Leste" class="country-region" fill="#1A5276" cx="330" cy="272" rx="18" ry="8"
+            onclick="clickCountry('Timor-Leste')"/>
+          <text x="330" y="286" fill="white" font-size="6" font-family="Nunito" font-weight="700" text-anchor="middle">Timor-Leste</text>
+
+          <!-- Labels -->
+          <text x="150" y="12" fill="rgba(255,255,255,0.3)" font-size="8" font-family="Nunito" text-anchor="middle">MAINLAND</text>
+          <text x="300" y="12" fill="rgba(255,255,255,0.3)" font-size="8" font-family="Nunito" text-anchor="middle">INSULAR</text>
+          <line x1="230" y1="0" x2="230" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="4,4"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SCREEN 4: RESULTS ======================== -->
+<div class="screen" id="screen-results">
+  <div class="card" style="max-width:560px; text-align:center;">
+    <span class="medal-display" id="result-medal">🥇</span>
+    <div class="result-name" id="result-name">Magaling ka, Explorer!</div>
+    <div style="color:rgba(255,255,255,0.5); font-size:0.9rem; margin-bottom:4px;">Kabuuang Puntos</div>
+    <div class="result-score-big" id="result-score">0 / 220</div>
+
+    <div class="result-stats">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-l1">0</div>
+        <div class="stat-label">Territory Tag</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-l2">0</div>
+        <div class="stat-label">Flag Runner</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-l3">0</div>
+        <div class="stat-label">Merchant's Quest</div>
+      </div>
+    </div>
+
+    <div class="result-stats" style="grid-template-columns:1fr 1fr; margin-top:0;">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-correct">0</div>
+        <div class="stat-label">Tamang Sagot</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-time">0:00</div>
+        <div class="stat-label">Oras</div>
+      </div>
+    </div>
+
+    <div class="feedback-message" id="result-feedback"></div>
+
+    <div class="result-btns">
+      <button class="btn btn-primary" onclick="restartGame()">🔄 Subukan Ulit</button>
+      <button class="btn btn-secondary" onclick="newPlayer()">🏠 Bagong Manlalaro</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GAME DATA
+// ============================================================
+const COUNTRIES = [
+  { name: "Pilipinas",    capital: "Maynila",              type: "insular",   flagImg: "flags/pilipinas.png",    flagEmoji: "🇵🇭" },
+  { name: "Vietnam",      capital: "Hanoi",                type: "mainland",  flagImg: "flags/vietnam.png",      flagEmoji: "🇻🇳" },
+  { name: "Thailand",     capital: "Bangkok",              type: "mainland",  flagImg: "flags/thailand.png",     flagEmoji: "🇹🇭" },
+  { name: "Myanmar",      capital: "Naypyidaw",            type: "mainland",  flagImg: "flags/myanmar.png",      flagEmoji: "🇲🇲" },
+  { name: "Laos",         capital: "Vientiane",            type: "mainland",  flagImg: "flags/laos.png",         flagEmoji: "🇱🇦" },
+  { name: "Cambodia",     capital: "Phnom Penh",           type: "mainland",  flagImg: "flags/cambodia.png",     flagEmoji: "🇰🇭" },
+  { name: "Malaysia",     capital: "Kuala Lumpur",         type: "mainland",  flagImg: "flags/malaysia.png",     flagEmoji: "🇲🇾" },
+  { name: "Singapore",    capital: "Singapore",            type: "insular",   flagImg: "flags/singapore.png",    flagEmoji: "🇸🇬" },
+  { name: "Indonesia",    capital: "Jakarta",              type: "insular",   flagImg: "flags/indonesia.png",    flagEmoji: "🇮🇩" },
+  { name: "Brunei",       capital: "Bandar Seri Begawan",  type: "insular",   flagImg: "flags/brunei.png",       flagEmoji: "🇧🇳" },
+  { name: "Timor-Leste",  capital: "Dili",                 type: "insular",   flagImg: "flags/timor-leste.png",  flagEmoji: "🇹🇱" },
+];
+
+const MAINLAND = ["Myanmar","Thailand","Laos","Vietnam","Cambodia","Malaysia"];
+const INSULAR  = ["Pilipinas","Indonesia","Singapore","Brunei","Timor-Leste"];
+
+const MISSIONS = [
+  {
+    icon: "🌾", title: "Kailangan ng Palay (Rice)!",
+    mission: "Ang rehiyon ay nangangailangan ng maraming palay. Saan mo ito kukunin? Piliin ang tamang bansa sa mapa.",
+    correct: ["Vietnam","Thailand"],
+    feedback: "Tama! Sila ang tinatawag na 'Rice Bowls of Asia.' Ang kanilang malawak na ilog delta (Mekong, Chao Phraya) ang dahilan ng kanilang masaganang ani ng palay.",
+    wrongFeedback: "Mali! Ang pinakamagandang lugar para sa palay ay Vietnam at Thailand dahil sa kanilang malawak na ilog delta."
+  },
+  {
+    icon: "🛢️", title: "Kailangan ng Langis at Petrolyo!",
+    mission: "Ang mga sasakyan at pabrika ay nangangailangan ng gasolina. Saan kukuha ng langis at petrolyo?",
+    correct: ["Brunei","Indonesia"],
+    feedback: "Tama! Ang Brunei at Indonesia ay mayaman sa langis at natural gas. Ang karagatan nila ay puno ng mga deposito ng petrolyo!",
+    wrongFeedback: "Mali! Ang tamang sagot ay Brunei o Indonesia — ang mga ito ang pinakamayamang bansa sa langis sa SEA."
+  },
+  {
+    icon: "🐠", title: "Kailangan ng Isda at Pagkaing-dagat!",
+    mission: "Ang mga tao ay nangangailangan ng protina mula sa karagatan. Saan pinaka-maraming isda?",
+    correct: ["Pilipinas","Indonesia","Vietnam"],
+    feedback: "Tama! Ang mga insular na bansa at Vietnam ay may malawak na karagatan at libu-libong kilometro ng dalampasigan para sa pangingisda.",
+    wrongFeedback: "Mali! Ang mga bansang may malawak na karagatan tulad ng Pilipinas, Indonesia, at Vietnam ang pinakamayaman sa isda."
+  },
+  {
+    icon: "🌴", title: "Kailangan ng Niyog (Coconut)!",
+    mission: "Para sa langis ng niyog, tubig ng buko, at marami pa. Saan pinaka-maraming niyog?",
+    correct: ["Pilipinas","Indonesia"],
+    feedback: "Tama! Ang Pilipinas ay isa sa mga pinakamalaking exporter ng niyog sa buong mundo. Ang Indonesia naman ay may pinakamaraming puno ng niyog!",
+    wrongFeedback: "Mali! Ang Pilipinas at Indonesia ang mga lider sa produksyon ng niyog sa buong mundo."
+  },
+];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let gs = {
+  playerName: "",
+  startTime: null,
+  l1Score: 0, l1Placed: 0, l1Tries: {},
+  l2Score: 0, l2Round: 0, l2Questions: [], l2Timer: null,
+  l3Score: 0, l3Mission: 0,
+  totalCorrect: 0,
+};
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  updateProgress(id);
+}
+
+function updateProgress(screenId) {
+  const map = { 'screen-intro': 0, 'screen-level1': 1, 'screen-level2': 2, 'screen-level3': 3, 'screen-results': 4 };
+  const idx = map[screenId] || 0;
+  document.getElementById('progress-fill').style.width = (idx / 4 * 100) + '%';
+  const ind = document.getElementById('level-indicator');
+  ind.classList.toggle('visible', idx > 0);
+  ['dot-0','dot-1','dot-2','dot-3'].forEach((id,i) => {
+    const dot = document.getElementById(id);
+    dot.className = 'level-dot';
+    if (i < idx - 1) dot.classList.add('done');
+    else if (i === idx - 1) dot.classList.add('active');
+  });
+}
+
+function transition(text, callback) {
+  const el = document.getElementById('transition-overlay');
+  document.getElementById('transition-text').textContent = text;
+  el.classList.add('show');
+  setTimeout(() => {
+    callback();
+    setTimeout(() => el.classList.remove('show'), 400);
+  }, 900);
+}
+
+// ============================================================
+// SCREEN 0: START
+// ============================================================
+function startGame() {
+  const n = document.getElementById('player-name-input').value.trim();
+  if (!n) { document.getElementById('player-name-input').focus(); return; }
+  gs.playerName = n;
+  gs.startTime = Date.now();
+  transition("Papunta na sa Timog Silangang Asya... 🌏", () => {
+    initLevel1();
+    showScreen('screen-level1');
+  });
+}
+
+document.getElementById('player-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startGame();
+});
+
+// ============================================================
+// LEVEL 1: DRAG AND DROP
+// ============================================================
+function initLevel1() {
+  gs.l1Score = 0; gs.l1Placed = 0; gs.l1Tries = {};
+  document.getElementById('l1-score').textContent = 0;
+  document.getElementById('l1-placed').textContent = 0;
+  document.getElementById('placed-mainland').innerHTML = '';
+  document.getElementById('placed-insular').innerHTML = '';
+
+  const wb = document.getElementById('word-bank');
+  wb.innerHTML = '';
+  COUNTRIES.forEach(c => {
+    const chip = document.createElement('div');
+    chip.className = 'country-chip';
+    chip.id = 'chip-' + c.name.replace(/\s/g,'_');
+    chip.textContent = c.name;
+    chip.draggable = true;
+    chip.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', c.name);
+      chip.classList.add('dragging');
+    });
+    chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+    // Touch support
+    chip.addEventListener('touchstart', touchStart, { passive: true });
+    chip.addEventListener('touchmove', touchMove, { passive: false });
+    chip.addEventListener('touchend', touchEnd);
+    wb.appendChild(chip);
+  });
+}
+
+function allowDrop(e) { e.preventDefault(); }
+
+function dropCountry(e, zone) {
+  e.preventDefault();
+  document.querySelectorAll('.map-zone').forEach(z => z.classList.remove('drag-over'));
+  const name = e.dataTransfer.getData('text/plain');
+  handlePlacement(name, zone);
+}
+
+function handlePlacement(name, zone) {
+  const country = COUNTRIES.find(c => c.name === name);
+  if (!country) return;
+  const chipId = 'chip-' + name.replace(/\s/g,'_');
+  const chip = document.getElementById(chipId);
+  if (!chip || chip.classList.contains('placed')) return;
+
+  gs.l1Tries[name] = (gs.l1Tries[name] || 0) + 1;
+
+  if (country.type === zone) {
+    // Correct
+    const pts = gs.l1Tries[name] === 1 ? 10 : 5;
+    gs.l1Score += pts;
+    gs.l1Placed++;
+    gs.totalCorrect++;
+    chip.classList.add('placed');
+
+    const placed = document.getElementById('placed-' + zone);
+    const zchip = document.createElement('div');
+    zchip.className = 'zone-chip';
+    zchip.textContent = name + ' ✅';
+    placed.appendChild(zchip);
+
+    document.getElementById('l1-score').textContent = gs.l1Score;
+    document.getElementById('l1-placed').textContent = gs.l1Placed;
+
+    if (gs.l1Placed === 11) {
+      setTimeout(() => {
+        transition("Napakagaling! Pumunta na sa Level 2... 🚩", () => {
+          initLevel2();
+          showScreen('screen-level2');
+        });
+      }, 600);
+    }
+  } else {
+    // Wrong
+    chip.classList.add('shake');
+    setTimeout(() => chip.classList.remove('shake'), 400);
+  }
+}
+
+// ---- Touch drag support ----
+let touchDragEl = null, touchDragName = null, touchClone = null;
+function touchStart(e) {
+  touchDragEl = e.currentTarget;
+  touchDragName = touchDragEl.textContent.trim();
+  touchClone = touchDragEl.cloneNode(true);
+  touchClone.style.cssText = `position:fixed;opacity:0.8;pointer-events:none;z-index:9999;padding:8px 18px;background:rgba(255,255,255,0.3);border-radius:50px;font-family:Nunito,sans-serif;font-weight:700;font-size:0.9rem;color:white;`;
+  document.body.appendChild(touchClone);
+}
+function touchMove(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  if (touchClone) {
+    touchClone.style.left = (t.clientX - 40) + 'px';
+    touchClone.style.top = (t.clientY - 20) + 'px';
+  }
+}
+function touchEnd(e) {
+  if (touchClone) { document.body.removeChild(touchClone); touchClone = null; }
+  if (!touchDragName) return;
+  const t = e.changedTouches[0];
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const zone = el?.closest('.map-zone');
+  if (zone) {
+    const zoneType = zone.classList.contains('mainland') ? 'mainland' : 'insular';
+    handlePlacement(touchDragName, zoneType);
+  }
+  touchDragEl = null; touchDragName = null;
+}
+
+// ============================================================
+// LEVEL 2: FLAG RUNNER
+// ============================================================
+let l2Questions = [], l2QIdx = 0, l2TimerInterval = null, l2TimeLeft = 0;
+
+function initLevel2() {
+  gs.l2Score = 0; gs.l2Round = 0;
+  document.getElementById('l2-score').textContent = 0;
+  // Pick 7 random countries
+  l2Questions = [...COUNTRIES].sort(() => Math.random() - 0.5).slice(0, 7);
+  l2QIdx = 0;
+  showL2Question();
+}
+
+function showL2Question() {
+  if (l2QIdx >= l2Questions.length) {
+    clearInterval(l2TimerInterval);
+    transition("Level 2 Tapos Na! Susunod: Merchant's Quest ⚓", () => {
+      initLevel3();
+      showScreen('screen-level3');
+    });
+    return;
+  }
+  document.getElementById('l2-round').textContent = l2QIdx + 1;
+  const q = l2Questions[l2QIdx];
+
+  // Draw flag
+  drawFlag(q, document.getElementById('flag-display'));
+
+  // Build 4 choices: correct + 3 random wrong
+  const others = COUNTRIES.filter(c => c.name !== q.name).sort(() => Math.random() - 0.5).slice(0, 3);
+  const choices = [q, ...others].sort(() => Math.random() - 0.5);
+
+  const grid = document.getElementById('choices-grid');
+  grid.innerHTML = '';
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<strong>${c.name}</strong><br><span style="font-size:0.8rem;opacity:0.7">${c.capital}</span>`;
+    btn.onclick = () => answerL2(c.name === q.name, btn, q);
+    grid.appendChild(btn);
+  });
+
+  // Timer
+  clearInterval(l2TimerInterval);
+  l2TimeLeft = 15;
+  updateTimerBar(15, 15);
+  l2TimerInterval = setInterval(() => {
+    l2TimeLeft--;
+    updateTimerBar(l2TimeLeft, 15);
+    if (l2TimeLeft <= 0) {
+      clearInterval(l2TimerInterval);
+      answerL2(false, null, q);
+    }
+  }, 1000);
+}
+
+function updateTimerBar(t, max) {
+  const fill = document.getElementById('timer-fill');
+  fill.style.width = (t / max * 100) + '%';
+  fill.className = 'timer-fill' + (t <= 5 ? ' urgent' : '');
+}
+
+function answerL2(correct, btn, q) {
+  clearInterval(l2TimerInterval);
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+  if (correct) {
+    gs.l2Score += 10;
+    gs.totalCorrect++;
+    if (btn) btn.classList.add('correct');
+  } else {
+    if (btn) btn.classList.add('wrong');
+    // Highlight correct
+    document.querySelectorAll('.choice-btn').forEach(b => {
+      if (b.innerHTML.includes(q.name)) b.classList.add('correct');
+    });
+  }
+  document.getElementById('l2-score').textContent = gs.l2Score;
+
+  l2QIdx++;
+  setTimeout(showL2Question, 1200);
+}
+
+function drawFlag(country, container) {
+  container.innerHTML = '';
+  container.style.display = 'flex';
+  container.style.alignItems = 'center';
+  container.style.justifyContent = 'center';
+  container.style.background = 'rgba(0,0,0,0.25)';
+
+  const img = document.createElement('img');
+  img.src = country.flagImg;
+  img.alt = 'Bandila ng ' + country.name;
+  img.style.cssText = 'width:100%; height:100%; object-fit:cover; border-radius:10px;';
+
+  img.onerror = () => {
+    container.innerHTML = '';
+    container.style.flexDirection = 'column';
+    container.style.gap = '6px';
+    container.style.background = 'rgba(255,255,255,0.06)';
+    container.style.border = '2px dashed rgba(255,255,255,0.25)';
+    const emoji = document.createElement('div');
+    emoji.textContent = country.flagEmoji;
+    emoji.style.cssText = 'font-size:3.5rem; line-height:1;';
+    const label = document.createElement('div');
+    label.textContent = '[ Flag Placeholder ]';
+    label.style.cssText = 'font-size:0.72rem; color:rgba(255,255,255,0.35); font-family:Nunito,sans-serif; letter-spacing:1px; text-transform:uppercase;';
+    const path = document.createElement('div');
+    path.textContent = country.flagImg;
+    path.style.cssText = 'font-size:0.65rem; color:rgba(255,255,255,0.2); font-family:monospace; margin-top:2px;';
+    container.appendChild(emoji);
+    container.appendChild(label);
+    container.appendChild(path);
+  };
+
+  container.appendChild(img);
+}
+
+// ============================================================
+// LEVEL 3: MERCHANT'S QUEST
+// ============================================================
+function initLevel3() {
+  gs.l3Score = 0; gs.l3Mission = 0;
+  document.getElementById('l3-score').textContent = 0;
+  buildMissionProgress();
+  loadMission();
+}
+
+function buildMissionProgress() {
+  const prog = document.getElementById('mission-progress');
+  prog.innerHTML = '';
+  MISSIONS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'mission-dot' + (i === 0 ? ' current' : '');
+    d.id = 'mdot-' + i;
+    prog.appendChild(d);
+  });
+}
+
+function loadMission() {
+  if (gs.l3Mission >= MISSIONS.length) {
+    setTimeout(() => {
+      transition("Natapos na ang lahat ng misyon! Kita na ang resulta 🏆", () => {
+        showResults();
+        showScreen('screen-results');
+      });
+    }, 400);
+    return;
+  }
+  const m = MISSIONS[gs.l3Mission];
+  document.getElementById('cargo-icon').textContent = m.icon;
+  document.getElementById('cargo-title').textContent = m.title;
+  document.getElementById('cargo-mission').textContent = m.mission;
+  document.getElementById('l3-score').textContent = gs.l3Score;
+
+  // Update dots
+  document.querySelectorAll('.mission-dot').forEach((d, i) => {
+    d.className = 'mission-dot' + (i < gs.l3Mission ? ' done' : '') + (i === gs.l3Mission ? ' current' : '');
+  });
+}
+
+function clickCountry(name) {
+  if (gs.l3Mission >= MISSIONS.length) return;
+  const m = MISSIONS[gs.l3Mission];
+  const correct = m.correct.includes(name);
+
+  // Flash the region
+  const reg = document.getElementById('reg-' + name.replace(/\s/g,'_'));
+  if (reg) {
+    reg.classList.add(correct ? 'correct-flash' : 'wrong-flash');
+    setTimeout(() => reg.classList.remove('correct-flash','wrong-flash'), 600);
+  }
+
+  if (correct) {
+    gs.l3Score += 25;
+    gs.totalCorrect++;
+    showFeedback('✅', 'Tama!', m.feedback, '#52B788');
+  } else {
+    showFeedback('❌', 'Mali!', m.wrongFeedback, '#E63946');
+  }
+}
+
+function showFeedback(emoji, title, text, color) {
+  document.getElementById('popup-emoji').textContent = emoji;
+  document.getElementById('popup-title').textContent = title;
+  document.getElementById('popup-title').style.color = color;
+  document.getElementById('popup-text').textContent = text;
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('feedback-popup').classList.add('show');
+}
+
+function closeFeedback() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('feedback-popup').classList.remove('show');
+  gs.l3Mission++;
+  loadMission();
+}
+
+// ============================================================
+// RESULTS
+// ============================================================
+function showResults() {
+  const total = gs.l1Score + gs.l2Score + gs.l3Score;
+  const maxScore = 110 + 70 + 100; // 110 L1, 70 L2, 100 L3
+  const pct = Math.round(total / maxScore * 100);
+
+  let medal = '🥉', medalText = 'Bronze Explorer';
+  if (pct >= 90) { medal = '🥇'; medalText = 'Gold Explorer'; }
+  else if (pct >= 75) { medal = '🥈'; medalText = 'Silver Explorer'; }
+
+  const elapsed = Math.round((Date.now() - gs.startTime) / 1000);
+  const mm = Math.floor(elapsed / 60), ss = elapsed % 60;
+
+  document.getElementById('result-medal').textContent = medal;
+  document.getElementById('result-name').textContent = `${medalText}, ${gs.playerName}!`;
+  document.getElementById('result-score').textContent = `${total} / ${maxScore} (${pct}%)`;
+  document.getElementById('stat-l1').textContent = gs.l1Score;
+  document.getElementById('stat-l2').textContent = gs.l2Score;
+  document.getElementById('stat-l3').textContent = gs.l3Score;
+  document.getElementById('stat-correct').textContent = gs.totalCorrect;
+  document.getElementById('stat-time').textContent = `${mm}:${ss.toString().padStart(2,'0')}`;
+
+  // Feedback
+  let fb = [];
+  if (gs.l1Score < 70) fb.push("📍 Kailangan mo pang pag-aralan ang pagkakahati ng Mainland at Insular SEA.");
+  else fb.push("📍 Napakagaling mo sa pagkilala ng Mainland at Insular na bansa!");
+  if (gs.l2Score < 50) fb.push("🚩 Mag-aral pa ng mga bandila at kabisera ng mga bansa sa SEA.");
+  else fb.push("🚩 Mahusay ka sa pagkilala ng mga bandila at kabisera!");
+  if (gs.l3Score < 75) fb.push("⚓ Kailangan mo pang pag-aralan ang likas na yaman ng bawat bansa sa SEA.");
+  else fb.push("⚓ Kahusay! Kabisado mo ang likas na yaman ng SEA!");
+  document.getElementById('result-feedback').innerHTML = fb.join('<br><br>');
+}
+
+function restartGame() {
+  const name = gs.playerName;
+  gs = { playerName: name, startTime: Date.now(), l1Score:0, l1Placed:0, l1Tries:{}, l2Score:0, l2Round:0, l2Questions:[], l2Timer:null, l3Score:0, l3Mission:0, totalCorrect:0 };
+  transition("Simulan muli ang Misyon! 🚀", () => { initLevel1(); showScreen('screen-level1'); });
+}
+
+function newPlayer() {
+  gs = { playerName:"", startTime:null, l1Score:0, l1Placed:0, l1Tries:{}, l2Score:0, l2Round:0, l2Questions:[], l2Timer:null, l3Score:0, l3Mission:0, totalCorrect:0 };
+  document.getElementById('player-name-input').value = '';
+  showScreen('screen-intro');
+}
+</script>
+</body>
+</html>
